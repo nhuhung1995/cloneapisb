@@ -1,0 +1,12 @@
+{
+  "name": "cloneapisb",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "build:offline": "python scripts/build_offline_master.py --out data/offline/ken_all_master.json"
+  }
+}
