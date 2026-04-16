@@ -24,7 +24,9 @@ export default async function handler(req, res) {
     addressCode: input.addressCode,
     latitude: meta.latitude,
     longitude: meta.longitude,
-    banchiCandidates: meta.banchi,
+    banchiCandidates: (meta.banchi || []).map((b) =>
+      typeof b === "string" ? { value: b, go: [] } : { value: b.value, go: b.go || [] }
+    ),
     detailResolved: true,
     snapshotVersion: SNAPSHOT_VERSION
   });

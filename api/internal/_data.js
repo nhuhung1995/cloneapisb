@@ -49,6 +49,19 @@ export const ADDRESS_BY_ZIP = {
         { addNbrKanjiNm: "２丁目", addressCd: "13113001002" }
       ]
     }
+  ],
+  "3320035": [
+    {
+      longNm: "埼玉県",
+      cityKanjiNm: "川口市",
+      streetKanjiNm: "並木",
+      streetInfoList: [
+        { addNbrKanjiNm: "１丁目", addressCd: "11203061001" },
+        { addNbrKanjiNm: "２丁目", addressCd: "11203061002" },
+        { addNbrKanjiNm: "３丁目", addressCd: "11203061003" },
+        { addNbrKanjiNm: "４丁目", addressCd: "11203061004" }
+      ]
+    }
   ]
 };
 
@@ -56,37 +69,86 @@ export const ADDRESS_DETAIL_BY_CODE = {
   "13103012001": {
     latitude: 35.6586,
     longitude: 139.7454,
-    banchi: ["1-1", "1-2", "1-3"],
+    banchi: [
+      { value: "1-1", go: ["101", "102"] },
+      { value: "1-2", go: ["201"] },
+      { value: "1-3", go: ["301", "302"] }
+    ],
     available: true
   },
   "13103012002": {
     latitude: 35.6563,
     longitude: 139.7481,
-    banchi: ["2-1", "2-2"],
+    banchi: [
+      { value: "2-1", go: ["101"] },
+      { value: "2-2", go: ["201", "202"] }
+    ],
     available: false
   },
   "13103012003": {
     latitude: 35.6577,
     longitude: 139.7443,
-    banchi: ["3-1"],
+    banchi: [{ value: "3-1", go: ["101"] }],
     available: true
   },
   "13103012004": {
     latitude: 35.6581,
     longitude: 139.7428,
-    banchi: ["4-1", "4-2"],
+    banchi: [
+      { value: "4-1", go: ["101"] },
+      { value: "4-2", go: ["201"] }
+    ],
     available: false
   },
   "13113001001": {
     latitude: 35.6719,
     longitude: 139.7063,
-    banchi: ["1-5", "1-6"],
+    banchi: [
+      { value: "1-5", go: ["101", "102"] },
+      { value: "1-6", go: ["201"] }
+    ],
     available: true
   },
   "13113001002": {
     latitude: 35.6708,
     longitude: 139.7084,
-    banchi: ["2-7"],
+    banchi: [{ value: "2-7", go: ["101"] }],
+    available: false
+  },
+  "11203061001": {
+    latitude: 35.8151,
+    longitude: 139.7074,
+    banchi: [
+      { value: "10-1", go: ["101", "102", "103"] },
+      { value: "10-2", go: ["201"] }
+    ],
+    available: true
+  },
+  "11203061002": {
+    latitude: 35.8148,
+    longitude: 139.7081,
+    banchi: [
+      { value: "20-1", go: ["101", "102"] },
+      { value: "20-2", go: ["201", "202"] }
+    ],
+    available: true
+  },
+  "11203061003": {
+    latitude: 35.8143,
+    longitude: 139.7067,
+    banchi: [
+      { value: "30-1", go: ["101"] },
+      { value: "30-2", go: ["201"] }
+    ],
+    available: false
+  },
+  "11203061004": {
+    latitude: 35.8139,
+    longitude: 139.7061,
+    banchi: [
+      { value: "40-1", go: ["101", "102"] },
+      { value: "40-2", go: ["201"] }
+    ],
     available: false
   }
 };

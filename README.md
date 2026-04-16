@@ -13,6 +13,7 @@ Mo trang voi query param `individualCode`:
 Trang demo se cho test skeleton 4 buoc:
 
 1. Search address
+1.5. Chome -> Banchi/Go
 2. Normalize
 3. Detail
 4. Availability (co retry fallback)

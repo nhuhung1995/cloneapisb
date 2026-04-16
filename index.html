@@ -148,6 +148,14 @@
           <div class="field"><button class="ghost" id="runAll">Run Full Pipeline</button></div>
         </div>
         <div class="address-list" id="addressList"></div>
+        <h2>Banchi / Go</h2>
+        <div class="address-list" id="banchiList"></div>
+        <div class="row" id="goSelectWrap" style="display:none;">
+          <div class="field">
+            <label>Go / Room</label>
+            <select id="goSelect"></select>
+          </div>
+        </div>
       </section>
 
       <section class="card">
@@ -161,7 +169,10 @@
         session: null,
         dataSource: "internal",
         selectedAddress: null,
+        selectedBanchi: null,
+        selectedGo: "",
         searchResult: null,
+        banchiResult: null,
         normalizeResult: null,
         detailResult: null,
         availabilityResult: null
@@ -212,6 +223,12 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
           });
+          const json = await response.json();
+          if (!response.ok) throw json;
+          return json;
+        },
+        async banchiByAddressCode(addressCode) {
+          const response = await fetch(`/api/internal/banchi?addressCode=${addressCode}`);
           const json = await response.json();
           if (!response.ok) throw json;
           return json;
@@ -292,21 +309,79 @@
       function renderAddressList(items) {
         const list = document.getElementById("addressList");
         list.innerHTML = "";
+        document.getElementById("banchiList").innerHTML = "";
+        document.getElementById("goSelectWrap").style.display = "none";
+        document.getElementById("goSelect").innerHTML = "";
         if (!items.length) {
           list.innerHTML = `<p><span class="pill warn">empty</span> No address rows returned for this zip.</p>`;
           state.selectedAddress = null;
+          state.selectedBanchi = null;
+          state.selectedGo = "";
           return;
         }
         items.forEach((item, i) => {
           const id = `addr-${i}`;
           const row = document.createElement("label");
           row.innerHTML = `<input type="radio" name="addressPick" id="${id}" ${i === 0 ? "checked" : ""}/> ${item.full} (${item.addressCode})`;
-          row.querySelector("input").addEventListener("change", () => {
+          row.querySelector("input").addEventListener("change", () => safeRun(async () => {
             state.selectedAddress = item;
-          });
+            await loadBanchiFromSelected();
+          }));
           list.appendChild(row);
         });
         state.selectedAddress = items[0] || null;
+      }
+
+      function renderBanchiList(candidates) {
+        const list = document.getElementById("banchiList");
+        list.innerHTML = "";
+        if (!candidates.length) {
+          list.innerHTML = `<p><span class="pill warn">empty</span> No banchi rows for this chome.</p>`;
+          state.selectedBanchi = null;
+          state.selectedGo = "";
+          return;
+        }
+
+        candidates.forEach((b, i) => {
+          const id = `banchi-${i}`;
+          const goText = (b.go || []).length ? ` / go: ${b.go.join(", ")}` : "";
+          const row = document.createElement("label");
+          row.innerHTML = `<input type="radio" name="banchiPick" id="${id}" ${i === 0 ? "checked" : ""}/> ${b.value}${goText}`;
+          row.querySelector("input").addEventListener("change", () => {
+            state.selectedBanchi = b;
+            renderGoSelect(b.go || []);
+          });
+          list.appendChild(row);
+        });
+        state.selectedBanchi = candidates[0] || null;
+        renderGoSelect((state.selectedBanchi && state.selectedBanchi.go) || []);
+      }
+
+      function renderGoSelect(goCandidates) {
+        const wrap = document.getElementById("goSelectWrap");
+        const select = document.getElementById("goSelect");
+        select.innerHTML = "";
+        if (!goCandidates.length) {
+          wrap.style.display = "none";
+          state.selectedGo = "";
+          return;
+        }
+        wrap.style.display = "block";
+        goCandidates.forEach((g, i) => {
+          const opt = document.createElement("option");
+          opt.value = g;
+          opt.textContent = g;
+          if (i === 0) opt.selected = true;
+          select.appendChild(opt);
+        });
+        state.selectedGo = goCandidates[0];
+      }
+
+      async function loadBanchiFromSelected() {
+        if (!state.selectedAddress || !state.selectedAddress.addressCode) return;
+        state.banchiResult = await api.banchiByAddressCode(state.selectedAddress.addressCode);
+        renderBanchiList(state.banchiResult.banchiCandidates || []);
+        log("Step1.5 banchiByAddressCode", state.banchiResult);
       }
 
       async function runSearch() {
@@ -314,6 +389,7 @@
         state.searchResult = await api.searchAddress(zip);
         renderAddressList(state.searchResult.addresses);
         log("Step1 searchAddress", state.searchResult);
+        await loadBanchiFromSelected();
         if (state.searchResult.fallbackFrom === "live") {
           log("INFO", { message: "Internal snapshot has no data for this zip, used Live SB fallback for search only." });
         }
@@ -325,7 +401,8 @@
           orderZip: document.getElementById("zipCode").value.trim(),
           inUseServiceType: document.getElementById("inUseServiceType").value,
           orderAddress1: state.selectedAddress?.full || "",
-          orderAddress2: ""
+          orderAddress2: state.selectedBanchi?.value || "",
+          orderAddress10: state.selectedGo || ""
         };
         state.normalizeResult = await api.normalizeAddress(payload);
         log("Step2 normalizeAddress", state.normalizeResult);
@@ -389,12 +466,18 @@
         await runDetail();
         await runAvailability();
       }));
+      document.getElementById("goSelect").addEventListener("change", (e) => {
+        state.selectedGo = e.target.value;
+      });
       document.getElementById("dataSource").addEventListener("change", (e) => {
         state.dataSource = e.target.value;
         state.session = null;
         state.selectedAddress = null;
+        state.selectedBanchi = null;
+        state.selectedGo = "";
         document.getElementById("flowCard").style.display = "none";
         document.getElementById("addressList").innerHTML = "";
+        document.getElementById("banchiList").innerHTML = "";
         log("Data source switched", { dataSource: state.dataSource });
         renderSession();
       });
