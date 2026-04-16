@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Address Check Clone Skeleton</title>
+    <style>
+      :root {
+        --bg: #f3f6fb;
+        --card: #ffffff;
+        --line: #d8e2ef;
+        --text: #13253f;
+        --muted: #5f6f86;
+        --brand: #1565c0;
+        --ok: #107c41;
+        --warn: #9f5b00;
+        --err: #c21717;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: linear-gradient(155deg, #f6f8fc 0%, #eaf0f9 100%);
+        color: var(--text);
+        font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 30px auto 60px;
+        padding: 0 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 10px 28px rgba(20, 38, 66, 0.07);
+      }
+      h1 { margin: 0 0 10px; font-size: 28px; }
+      h2 { margin: 0 0 10px; font-size: 18px; }
+      p { margin: 6px 0; line-height: 1.45; }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+      .field { min-width: 220px; flex: 1; }
+      label { display: block; font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+      input, select, button {
+        width: 100%;
+        border: 1px solid #c9d7ea;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+      button {
+        cursor: pointer;
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
+        font-weight: 600;
+      }
+      button.ghost {
+        background: #fff;
+        color: var(--brand);
+      }
+      .pill {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .ok { background: #e8f8ef; color: var(--ok); }
+      .warn { background: #fff4e5; color: var(--warn); }
+      .err { background: #ffebeb; color: var(--err); }
+      .address-list label {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 8px;
+        cursor: pointer;
+      }
+      pre {
+        background: #0f1724;
+        color: #d5e6ff;
+        padding: 12px;
+        border-radius: 10px;
+        overflow: auto;
+        font-size: 12px;
+        max-height: 280px;
+      }
+      a { color: var(--brand); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="card">
+        <h1>Address Check Clone Skeleton</h1>
+        <p>Flow: <strong>search -> normalize -> detail -> availability</strong></p>
+        <p><a href="./docs/softbank-address-check-flow.md">Open analysis doc</a></p>
+        <div class="row">
+          <div class="field">
+            <label>Data Source</label>
+            <select id="dataSource">
+              <option value="internal">Internal Snapshot (default)</option>
+              <option value="live">Live SB (session + zip only)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="sessionCard"></section>
+
+      <section class="card" id="flowCard" style="display:none;">
+        <h2>Step Input</h2>
+        <div class="row">
+          <div class="field">
+            <label>Zipcode (7 digits)</label>
+            <input id="zipCode" value="1050011" />
+          </div>
+          <div class="field">
+            <label>Building Kind</label>
+            <select id="buildingKind">
+              <option value="2">2 (valid)</option>
+              <option value="1">1 (invalid test)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>In Use Service Type</label>
+            <select id="inUseServiceType">
+              <option value="1">1</option>
+              <option value="2">2</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Housing Type</label>
+            <select id="housingType">
+              <option value="1">1 (戸建)</option>
+              <option value="2">2 (集合)</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field"><button id="runSearch">1) Search Address</button></div>
+          <div class="field"><button id="runNormalize">2) Normalize</button></div>
+          <div class="field"><button id="runDetail">3) Detail</button></div>
+          <div class="field"><button id="runAvailability">4) Availability</button></div>
+        </div>
+        <div class="row">
+          <div class="field"><button class="ghost" id="runAll">Run Full Pipeline</button></div>
+        </div>
+        <div class="address-list" id="addressList"></div>
+      </section>
+
+      <section class="card">
+        <h2>Runtime Log</h2>
+        <pre id="logBox">Ready.</pre>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        session: null,
+        dataSource: "internal",
+        selectedAddress: null,
+        searchResult: null,
+        normalizeResult: null,
+        detailResult: null,
+        availabilityResult: null
+      };
+
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const log = (title, data) => {
+        const box = document.getElementById("logBox");
+        box.textContent = `${title}\n${JSON.stringify(data, null, 2)}\n\n` + box.textContent;
+      };
+
+      const api = {
+        async searchAddress(zip) {
+          if (!/^\d{7}$/.test(zip)) throw { code: "E00010", message: "zipcode invalid" };
+          const endpoint = state.dataSource === "live" ? "/api/sb/search-address" : "/api/internal/search-address";
+          let response = await fetch(`${endpoint}?zip=${zip}`);
+          let json = await response.json();
+          if (!response.ok) throw json;
+
+          // Internal mode fallback: if snapshot has no rows for this zip, try live search.
+          if (state.dataSource === "internal" && (!json.addresses || json.addresses.length === 0)) {
+            response = await fetch(`/api/sb/search-address?zip=${zip}`);
+            json = await response.json();
+            if (!response.ok) throw json;
+            json._fallbackFrom = "live";
+          }
+
+          const flattened = [];
+          (json.addresses || []).forEach((a) => {
+            const base = `${a.longNm || ""}${a.cityKanjiNm || ""}${a.streetKanjiNm || ""}`;
+            (a.streetInfoList || []).forEach((s) => {
+              flattened.push({
+                full: `${base}${s.addNbrKanjiNm || ""}`,
+                addressCode: s.addressCd || "",
+                pref: a.longNm || "",
+                city: a.cityKanjiNm || "",
+                street: a.streetKanjiNm || "",
+                chome: s.addNbrKanjiNm || ""
+              });
+            });
+          });
+          return { addresses: flattened, fallbackFrom: json._fallbackFrom || null };
+        },
+        async normalizeAddress(payload) {
+          await sleep(120);
+          const response = await fetch("/api/internal/normalize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const json = await response.json();
+          if (!response.ok) throw json;
+          return json;
+        },
+        async detailAddressSearch(payload) {
+          await sleep(120);
+          const response = await fetch("/api/internal/detail", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const json = await response.json();
+          if (!response.ok) throw json;
+          return json;
+        },
+        async serviceAreaCheck(payload) {
+          await sleep(120);
+          const response = await fetch("/api/internal/availability", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const json = await response.json();
+          if (!response.ok) throw json;
+          return json;
+        }
+      };
+
+      function renderSession() {
+        const card = document.getElementById("sessionCard");
+        const q = new URLSearchParams(location.search);
+        const individualCode = q.get("individualCode");
+        if (!individualCode) {
+          card.innerHTML = `
+            <h2>Access Limited</h2>
+            <p><span class="pill err">blocked</span> Missing <code>individualCode</code> in URL.</p>
+            <p>Open with sample: <a href="?individualCode=422sLcGAVUfqK">${location.origin}${location.pathname}?individualCode=422sLcGAVUfqK</a></p>
+          `;
+          return;
+        }
+        card.innerHTML = `<h2>Session Guard</h2><p><span class="pill warn">loading</span> Creating session from SB endpoint...</p>`;
+        const sessionEndpoint = state.dataSource === "live" ? "/api/sb/session" : "/api/internal/session";
+        fetch(sessionEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ individualCode })
+        })
+          .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw data;
+            const ag = data?.agencyProperty || {};
+            if (!ag.individualCd || !ag.uuid) {
+              throw { error: "invalid individualCode or empty response", response: data };
+            }
+            state.session = {
+              individualCode: ag.individualCd || individualCode,
+              uuid: ag.uuid || "",
+              nanoId: ag.nanoId || ""
+            };
+            document.getElementById("flowCard").style.display = "block";
+            card.innerHTML = `
+              <h2>Session Guard</h2>
+              <p><span class="pill ok">active</span> individualCode + uuid initialized by ${state.dataSource === "live" ? "SB API" : "Internal Snapshot"}.</p>
+              <p><strong>individualCode:</strong> ${state.session.individualCode}</p>
+              <p><strong>uuid:</strong> ${state.session.uuid}</p>
+            `;
+            log("Session initialized", ag);
+          })
+          .catch((err) => {
+            card.innerHTML = `
+              <h2>Session Guard</h2>
+              <p><span class="pill err">error</span> Failed to initialize session (check <code>individualCode</code>).</p>
+            `;
+            log("Session error", err);
+          });
+      }
+
+      function renderAddressList(items) {
+        const list = document.getElementById("addressList");
+        list.innerHTML = "";
+        if (!items.length) {
+          list.innerHTML = `<p><span class="pill warn">empty</span> No address rows returned for this zip.</p>`;
+          state.selectedAddress = null;
+          return;
+        }
+        items.forEach((item, i) => {
+          const id = `addr-${i}`;
+          const row = document.createElement("label");
+          row.innerHTML = `<input type="radio" name="addressPick" id="${id}" ${i === 0 ? "checked" : ""}/> ${item.full} (${item.addressCode})`;
+          row.querySelector("input").addEventListener("change", () => {
+            state.selectedAddress = item;
+          });
+          list.appendChild(row);
+        });
+        state.selectedAddress = items[0] || null;
+      }
+
+      async function runSearch() {
+        const zip = document.getElementById("zipCode").value.trim();
+        state.searchResult = await api.searchAddress(zip);
+        renderAddressList(state.searchResult.addresses);
+        log("Step1 searchAddress", state.searchResult);
+        if (state.searchResult.fallbackFrom === "live") {
+          log("INFO", { message: "Internal snapshot has no data for this zip, used Live SB fallback for search only." });
+        }
+      }
+
+      async function runNormalize() {
+        const payload = {
+          buildingKind: document.getElementById("buildingKind").value,
+          orderZip: document.getElementById("zipCode").value.trim(),
+          inUseServiceType: document.getElementById("inUseServiceType").value,
+          orderAddress1: state.selectedAddress?.full || "",
+          orderAddress2: ""
+        };
+        state.normalizeResult = await api.normalizeAddress(payload);
+        log("Step2 normalizeAddress", state.normalizeResult);
+      }
+
+      async function runDetail() {
+        if (!state.selectedAddress) throw { code: "E_PRECHECK", message: "address not selected" };
+        const payload = {
+          requestKbn: "1",
+          latitude: state.selectedAddress.lat ?? 35.0,
+          longitude: state.selectedAddress.lon ?? 139.0,
+          addressCode: state.selectedAddress.addressCode
+        };
+        state.detailResult = await api.detailAddressSearch(payload);
+        log("Step3 detailAddressSearch", state.detailResult);
+      }
+
+      async function runAvailability() {
+        if (!state.selectedAddress) throw { code: "E_PRECHECK", message: "address not selected" };
+        const base = {
+          businessType: "01",
+          channel: "web",
+          reqServiceAreaAcquisition: {
+            nttapiCollaborationResult: true,
+            placeAddress: {
+              housingType: document.getElementById("housingType").value,
+              addressCode: state.selectedAddress.addressCode
+            }
+          }
+        };
+        try {
+          state.availabilityResult = await api.serviceAreaCheck(base);
+          log("Step4 serviceAreaCheck", state.availabilityResult);
+        } catch (err) {
+          if (err.code === "NTT_TEMP_ERROR") {
+            const retry = JSON.parse(JSON.stringify(base));
+            retry.reqServiceAreaAcquisition.nttapiCollaborationResult = false;
+            state.availabilityResult = await api.serviceAreaCheck(retry);
+            log("Step4 serviceAreaCheck (retry fallback)", state.availabilityResult);
+            return;
+          }
+          throw err;
+        }
+      }
+
+      async function safeRun(fn) {
+        try {
+          await fn();
+        } catch (err) {
+          log("ERROR", err);
+        }
+      }
+
+      document.getElementById("runSearch").addEventListener("click", () => safeRun(runSearch));
+      document.getElementById("runNormalize").addEventListener("click", () => safeRun(runNormalize));
+      document.getElementById("runDetail").addEventListener("click", () => safeRun(runDetail));
+      document.getElementById("runAvailability").addEventListener("click", () => safeRun(runAvailability));
+      document.getElementById("runAll").addEventListener("click", () => safeRun(async () => {
+        await runSearch();
+        await runNormalize();
+        await runDetail();
+        await runAvailability();
+      }));
+      document.getElementById("dataSource").addEventListener("change", (e) => {
+        state.dataSource = e.target.value;
+        state.session = null;
+        state.selectedAddress = null;
+        document.getElementById("flowCard").style.display = "none";
+        document.getElementById("addressList").innerHTML = "";
+        log("Data source switched", { dataSource: state.dataSource });
+        renderSession();
+      });
+
+      renderSession();
+    </script>
+  </body>
+</html>
