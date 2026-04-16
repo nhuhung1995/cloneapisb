@@ -1,4 +1,4 @@
-import { ADDRESS_DETAIL_BY_CODE, SNAPSHOT_VERSION } from "./_data.js";
+import { ADDRESS_DETAIL_BY_CODE, SNAPSHOT_VERSION } from "../../lib/internal-data.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

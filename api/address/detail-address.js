@@ -1,12 +1,12 @@
-import { normalizeMode, extractBuildingCandidates } from "../_lib/shape.js";
-import { sbDetailAddress } from "../_lib/sb-client.js";
+import { normalizeMode, extractBuildingCandidates } from "../../lib/shape.js";
+import { sbDetailAddress } from "../../lib/sb-client.js";
 import {
   readCache,
   cacheDetailKbn1,
   cacheDetailKbn2,
   cacheDetailKbn3
-} from "../_lib/cache-store.js";
-import { ADDRESS_DETAIL_BY_CODE } from "../internal/_data.js";
+} from "../../lib/cache-store.js";
+import { ADDRESS_DETAIL_BY_CODE } from "../../lib/internal-data.js";
 
 function localDetail({ requestKbn, addressCode, choume, banchi, go }) {
   const cache = readCache();

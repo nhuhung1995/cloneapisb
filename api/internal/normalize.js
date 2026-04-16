@@ -1,4 +1,4 @@
-import { SNAPSHOT_VERSION, validateRequired } from "./_data.js";
+import { SNAPSHOT_VERSION, validateRequired } from "../../lib/internal-data.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

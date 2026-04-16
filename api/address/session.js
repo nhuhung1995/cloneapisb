@@ -1,6 +1,6 @@
-import { SESSION_FIXTURE } from "../internal/_data.js";
-import { normalizeMode } from "../_lib/shape.js";
-import { sbDecision } from "../_lib/sb-client.js";
+import { SESSION_FIXTURE } from "../../lib/internal-data.js";
+import { normalizeMode } from "../../lib/shape.js";
+import { sbDecision } from "../../lib/sb-client.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

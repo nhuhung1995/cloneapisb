@@ -1,8 +1,8 @@
-import { normalizeMode } from "../_lib/shape.js";
-import { readOfflineMaster } from "../_lib/offline-master.js";
-import { readCache, cacheSearch } from "../_lib/cache-store.js";
-import { ADDRESS_BY_ZIP } from "../internal/_data.js";
-import { sbSearchAddress } from "../_lib/sb-client.js";
+import { normalizeMode } from "../../lib/shape.js";
+import { readOfflineMaster } from "../../lib/offline-master.js";
+import { readCache, cacheSearch } from "../../lib/cache-store.js";
+import { ADDRESS_BY_ZIP } from "../../lib/internal-data.js";
+import { sbSearchAddress } from "../../lib/sb-client.js";
 
 function getLocalAddresses(zip) {
   const cache = readCache();
