@@ -1,45 +1,56 @@
-# taoweblan17
+# cloneapisb
 
-## Tai lieu
+## Muc tieu hien tai
 
-- [Phan tich flow check dia chi SoftBank](./docs/softbank-address-check-flow.md)
+Repo nay da duoc nang cap theo huong **tu chu du lieu** de giam phu thuoc vao SB:
 
-## Demo clone flow
+- `offline`: khong goi SB
+- `hybrid`: uu tien local, thieu moi goi SB va tu cache lai
+- `live`: goi SB truoc (de doi chieu)
 
-Mo trang voi query param `individualCode`:
+UI co switch `Provider Mode` ngay tren dau trang.
 
-- `/?individualCode=422sLcGAVUfqK`
-
-Trang demo se cho test skeleton 4 buoc:
+## Flow UI
 
 1. Search address
-1.5. Chome -> Banchi/Go
-2. Normalize
-3. Detail
-4. Availability (co retry fallback)
+2. Banchi (requestKbn=1)
+3. Go (requestKbn=2)
+4. Building (requestKbn=3)
+5. Normalize
+6. Detail
+7. Availability
 
-## Da doi sang API that (phan dia chi)
+`Full Address` hien theo dang: `chome - banchi - go`.
 
-- Session guard lay that tu endpoint SB:
-  - `POST /aqw-api/composition/individualCd/decision`
-- Zipcode search lay that tu endpoint SB:
-  - `GET /aqw-api/composition/search/address/{zip3}/{zip4}`
+## API moi (orchestrator)
 
-Luu y:
+- `POST /api/address/session?mode=offline|hybrid|live`
+- `GET /api/address/search-address?mode=offline|hybrid|live&zip=...`
+- `POST /api/address/detail-address?mode=offline|hybrid|live`
 
-- Phan `Search Address` da khong con hardcode zip.
-- Cac buoc sau van la skeleton de mo phong flow.
+## Thu vien offline (zip/chome)
 
-## Che do su dung de tranh phu thuoc SB
+- File du lieu local:
+  - `data/offline/ken_all_master.json`
+- Duoc build tu Japan Post KEN_ALL.
 
-- `Internal Snapshot` (mac dinh):
-  - Session + Search + Normalize + Detail + Availability deu chay tu API noi bo.
-  - Muc tieu: SB khoa thi he thong van chay.
-- `Live SB`:
-  - Chi dung session + zipcode search tu SB de doi chieu.
-  - Cac buoc sau van chay API noi bo de on dinh.
+### Rebuild du lieu offline
 
-## Ghi chu quan trong
+```bash
+python scripts/build_offline_master.py --out data/offline/ken_all_master.json
+```
 
-- Ban nay la "snapshot-compatible", khong the cam ket 100% dong bo mai mai voi he thong SB neu SB doi nghiep vu.
-- De giu do khop cao, can cap nhat fixture/snapshot dinh ky.
+Script se tai KEN_ALL tu Japan Post va build ve format app dang dung.
+
+## Cache nong live
+
+- File cache:
+  - `data/cache/live-cache.json`
+- Hybrid/live se tu dong luu ket qua live hop le vao cache.
+- Khi live loi, `hybrid` co the fallback local/cache.
+
+## Ghi chu
+
+- `zip -> chome` da co bo du lieu lon offline.
+- `banchi/go/building` full-coverage van phu thuoc cache/snapshot (hoac live khi co).
+- Repo `taoweblan17` dung o trang thai dong so; code moi tiep tuc tren repo nay.
